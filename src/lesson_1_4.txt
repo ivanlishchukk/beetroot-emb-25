@@ -1,0 +1,102 @@
+#include <Arduino.h>
+
+#define LED_PIN_WHITE 16
+#define LED_PIN_RED 17
+#define BUTTON_PIN 21
+#define BUTTON_BOOT 0
+
+int mode = 1;
+
+// Змінні для smartDelay()
+unsigned long previousMillis = 0;
+
+// Стан миготіння
+bool ledState = false;
+
+// Попередній стан кнопок
+bool lastButtonState = HIGH;
+bool lastBootState = HIGH;
+
+// Неблокуюча затримка
+bool smartDelay(unsigned long interval)
+{
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval)
+    {
+        previousMillis = currentMillis;
+        return true;
+    }
+    return false;
+}
+
+void setup()
+{
+    pinMode(LED_PIN_WHITE, OUTPUT);
+    pinMode(LED_PIN_RED, OUTPUT);
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+    pinMode(BUTTON_BOOT, INPUT);
+}
+
+void loop()
+{
+    // Читаємо стан зовнішньої кнопки
+    bool buttonState = digitalRead(BUTTON_PIN);
+
+    // Нове натискання зовнішньої кнопки
+    if (lastButtonState == HIGH && buttonState == LOW)
+    {
+        mode = 1;
+        // Скидаємо таймер миготіння
+        previousMillis = millis();
+        ledState = false;
+        digitalWrite(LED_PIN_WHITE, LOW);
+        digitalWrite(LED_PIN_RED, LOW);
+    }
+
+    lastButtonState = buttonState;
+    // Читаємо стан кнопки BOOT
+    bool bootState = digitalRead(BUTTON_BOOT);
+    // Нове натискання BOOT
+    if (lastBootState == HIGH && bootState == LOW)
+    {
+        mode = 2;
+        // Скидаємо таймер миготіння
+        previousMillis = millis();
+        ledState = false;
+        digitalWrite(LED_PIN_WHITE, LOW);
+        digitalWrite(LED_PIN_RED, LOW);
+    }
+
+    lastBootState = bootState;
+
+    // Режим №1 — синхронне миготіння
+    if (mode == 1)
+    {
+        if (smartDelay(200))
+        {
+            ledState = !ledState;
+            digitalWrite(LED_PIN_WHITE, ledState);
+            digitalWrite(LED_PIN_RED, ledState);
+        }
+    }
+
+    // Режим №2 — миготіння по черзі
+
+    if (mode == 2)
+    {
+        if (smartDelay(1000))
+        {
+            ledState = !ledState;
+            if (ledState)
+            {
+                digitalWrite(LED_PIN_WHITE, HIGH);
+                digitalWrite(LED_PIN_RED, LOW);
+            }
+            else
+            {
+                digitalWrite(LED_PIN_WHITE, LOW);
+                digitalWrite(LED_PIN_RED, HIGH);
+            }
+        }
+    }
+}

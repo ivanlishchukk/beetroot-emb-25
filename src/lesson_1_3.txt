@@ -1,0 +1,49 @@
+#include <Arduino.h>
+#define LED_RED 17
+#define LED_WHITE 16
+#define LED_BLUE 15
+
+void setup()
+{
+    pinMode(LED_RED, OUTPUT);
+    pinMode(LED_WHITE, OUTPUT);
+    pinMode(LED_BLUE, OUTPUT);
+}
+
+void loop()
+{
+    digitalWrite(17, HIGH);
+    digitalWrite(16, LOW);
+    digitalWrite(15, LOW);
+    delay(200);
+
+    digitalWrite(17, LOW);
+    digitalWrite(16, LOW);
+    digitalWrite(15, LOW);
+    delay(200);
+
+    digitalWrite(17, HIGH);
+    digitalWrite(16, LOW);
+    digitalWrite(15, LOW);
+    delay(200);
+
+    digitalWrite(17, LOW);
+    digitalWrite(16, HIGH);
+    digitalWrite(15, LOW);
+    delay(200);
+
+    digitalWrite(17, LOW);
+    digitalWrite(16, LOW);
+    digitalWrite(15, HIGH);
+    delay(200);
+
+    digitalWrite(17, LOW);
+    digitalWrite(16, LOW);
+    digitalWrite(15, LOW);
+    delay(200);
+
+    digitalWrite(17, LOW);
+    digitalWrite(16, LOW);
+    digitalWrite(15, HIGH);
+    delay(200);
+}

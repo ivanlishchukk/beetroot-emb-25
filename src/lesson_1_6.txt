@@ -1,0 +1,27 @@
+#include <Arduino.h>
+
+#define LDR_PIN 4
+#define ADC_MAX 4095.0f
+#define U_REF 3100.0f // мВ, шкала при затуханні 11 дБ
+
+void setup()
+{
+    Serial.begin(115200);
+    analogReadResolution(12);
+    Serial.println("RAW  | U_calc, мВ | U_mv, мВ | похибка, %");
+    Serial.println("-----+------------+----------+-----------");
+}
+
+void loop()
+{
+    int raw = analogRead(LDR_PIN);
+    float u_calc = raw / ADC_MAX * U_REF;
+    int u_mv = analogReadMilliVolts(LDR_PIN);
+    float err = (u_mv > 0) ? (u_calc - u_mv) / u_mv * 100.0f : 0.0f;
+
+    char line[64];
+    snprintf(line, sizeof(line), "%4d | %10.1f | %8d | %+8.2f",
+             raw, u_calc, u_mv, err);
+    Serial.println(line);
+    delay(100);
+}
