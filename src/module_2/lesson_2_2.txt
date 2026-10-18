@@ -1,0 +1,78 @@
+#include <Arduino.h>
+
+struct Config
+{
+    static constexpr uint8_t kRelayPin = 5; // IN модуля
+    static constexpr uint8_t kSensePin = 16; // NO контакту (COM -> GND)
+    static constexpr bool kActiveLow = false; // типовий модуль вмикається нулем на IN
+    static constexpr uint32_t kTimeoutUs = 100000; // 100 мс
+    static constexpr uint32_t kSettleMs = 300; // пауза, щоб брязкіт повністю стих
+    static constexpr uint8_t kSamples = 100;
+    static constexpr uint32_t kBaud = 115200;
+};
+
+namespace
+{
+    volatile uint32_t edge_us = 0; // мітка часу ПЕРШОГО фронту
+    volatile bool captured = false; // чи вже зловили фронт у цьому вимірі
+}
+
+void IRAM_ATTR senseIsr()
+{
+    if (!captured) // перший фронт час
+    {                       
+        edge_us = micros(); 
+        captured = true;
+    }
+}
+
+void setRelay(bool on)
+{
+    // XOR з kActiveLow перевертає логіку для модулів, активних нулем
+    digitalWrite(Config::kRelayPin, (on != Config::kActiveLow) ? HIGH : LOW);
+}
+
+// Повертає час від команди до першого фронту контакту, мкс (0 = таймаут)
+uint32_t measure(bool turn_on)
+{
+    captured = false;
+    const uint32_t t_cmd = micros(); // мітка часу команди
+    setRelay(turn_on); // команда
+    while (!captured)
+    { // чекаємо перший фронт
+        if (micros() - t_cmd > Config::kTimeoutUs)
+            return 0;
+    }
+    return edge_us - t_cmd;
+}
+
+void setup()
+{
+    Serial.begin(Config::kBaud);
+    pinMode(Config::kRelayPin, OUTPUT);
+    setRelay(false);
+    pinMode(Config::kSensePin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(Config::kSensePin), senseIsr, CHANGE);
+    delay(1000); // дати реле і порту заспокоїтись
+
+    Serial.println("#  | ON, мкс | OFF, мкс");
+    Serial.println("---+---------+---------");
+
+    uint64_t sum_on = 0, sum_off = 0;
+    for (uint8_t i = 1; i <= Config::kSamples; i++)
+    {
+        const uint32_t t_on = measure(true);
+        delay(Config::kSettleMs); // брязкіт стих, реле стабільно увімкнене
+        const uint32_t t_off = measure(false);
+        delay(Config::kSettleMs);
+        sum_on += t_on;
+        sum_off += t_off;
+        Serial.printf("%2u | %7u | %7u\n", i, t_on, t_off);
+    }
+    Serial.printf("середнє увімкнення: %.1f мкс (%.2f мс)\n",
+                  (double)sum_on / Config::kSamples, (double)sum_on / Config::kSamples / 1000.0);
+    Serial.printf("середнє вимкнення: %.1f мкс (%.2f мс)\n",
+                  (double)sum_off / Config::kSamples, (double)sum_off / Config::kSamples / 1000.0);
+}
+
+void loop() {}
