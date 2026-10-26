@@ -12,12 +12,13 @@ namespace
     volatile uint32_t isr_count = 0;
     uint32_t seen_count = 0;
     uint32_t accepted_count = 0;
-    uint32_t last_accept_ms = 0;
+    uint32_t event_ms = 0;
+    bool pending = false;
 }
 
 void IRAM_ATTR onButtonFalling()
 {
-    isr_count++;
+    isr_count = isr_count + 1;
 }
 
 void setup()
@@ -33,18 +34,22 @@ void loop()
     if (count != seen_count)
     {
         seen_count = count;
-        uint32_t current_ms = millis();
-        if ((current_ms - last_accept_ms) >= Config::kDebounceMs)
+        event_ms = millis();
+        pending = true;
+    }
+
+    if (pending && millis() - event_ms >= Config::kDebounceMs)
+    {
+        pending = false;
+        if (digitalRead(Config::kButtonPin) == LOW)
         {
             accepted_count++;
-            last_accept_ms = current_ms;
-            Serial.printf("ISR count: %u\n", seen_count);
-            Serial.printf("Accepted count: %u\n", accepted_count);
+            Serial.print("Button pressed! Count: ");
+            Serial.println(accepted_count);
         }
         else
         {
-            Serial.printf("ISR count: %u\n", seen_count);
-            Serial.printf("Rejected count: %u\n", (seen_count - accepted_count));
+            Serial.println("Button bounce ignored");
         }
     }
 }
