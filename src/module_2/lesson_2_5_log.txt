@@ -1,0 +1,160 @@
+# ДЗ 2.5 - витяжний вентилятор на апаратному таймері: результати виконання
+# Плата: ESP32-S3 DevKitC-1, Arduino-ESP32 3.x, монітор 115200 бод
+# Тестовий режим: kIsTestMode = true, цикл 12 с (замість 1 год), вентилятор увімкнений 3 с (замість 15 хв)
+# Вентилятор: реле на GPIO5 через 2N2222, LED-індикатор на GPIO15
+# Дата: 2026-10-29
+# Службові байти перед завантажувачем ESP-ROM прибрано; "[...]" - пропущені однакові рядки
+
+
+## 1. Звичайна робота: дзвінок таймера кожні 3000 мс, вентилятор увімкнений лише на дзвінку 0 (кожні 12 с)
+
+t=3018 ms alarm 1, fan OFF
+t=6018 ms alarm 2, fan OFF
+t=9018 ms alarm 3, fan OFF
+t=12018 ms alarm 0, fan ON
+t=15018 ms alarm 1, fan OFF
+t=18018 ms alarm 2, fan OFF
+t=21018 ms alarm 3, fan OFF
+t=24018 ms alarm 0, fan ON
+t=27018 ms alarm 1, fan OFF
+t=30018 ms alarm 2, fan OFF
+
+
+## 2. Внесення несправності: таймер запущено двічі, БЕЗ запобіжника (проміжна версія коду)
+# Два таймери - два інкременти на кожен дзвінок: цикл 6 с замість 12 с, вентилятор працює 50 % часу замість 25 %
+
+fan ON
+t=3007 ms alarm 1, fan OFF
+t=3007 ms alarm 2, fan OFF
+t=6007 ms alarm 3, fan OFF
+t=6007 ms alarm 0, fan ON
+t=9007 ms alarm 1, fan OFF
+t=9007 ms alarm 2, fan OFF
+t=12007 ms alarm 3, fan OFF
+t=12007 ms alarm 0, fan ON
+t=15007 ms alarm 1, fan OFF
+t=15007 ms alarm 2, fan OFF
+t=18007 ms alarm 3, fan OFF
+t=18007 ms alarm 0, fan ON
+
+
+## 3. Той самий подвійний виклик startFanTimer(), З запобіжником: другий виклик проігноровано, цикл 12 с
+
+t=18 ms start, reset reason 1, alarm 0, fan ON
+t=18 ms timer already started, ignored.
+t=3018 ms alarm 1, fan OFF
+t=6018 ms alarm 2, fan OFF
+t=9018 ms alarm 3, fan OFF
+
+
+## 4. Watchdog + продовження циклу після перезавантаження
+# На alarm 2 у моніторі надруковано "h": loop() зависає, годування сторожа припиняється.
+# Таймер працює далі (на 33018 мс записує в RTC-пам'ять alarm 3), сторож перезавантажує плату.
+# Після перезавантаження: причина 6 (ESP_RST_TASK_WDT), alarm 3 відновлено з RTC-пам'яті, вентилятор OFF,
+# наступний дзвінок - alarm 0, fan ON: цикл продовжився, а не почався спочатку.
+# Наприкінці натиснуто RESET: причина 1 (ESP_RST_POWERON), пам'яті не довіряємо, новий цикл з alarm 0.
+
+t=3018 ms alarm 1, fan OFF
+t=6018 ms alarm 2, fan OFF
+t=9018 ms alarm 3, fan OFF
+t=12018 ms alarm 0, fan ON
+t=15018 ms alarm 1, fan OFF
+t=18018 ms alarm 2, fan OFF
+t=21018 ms alarm 3, fan OFF
+t=24018 ms alarm 0, fan ON
+t=27018 ms alarm 1, fan OFF
+t=30018 ms alarm 2, fan OFF
+E (48240) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (48240) task_wdt:  - loopTask (CPU 1)
+E (48240) task_wdt: Tasks currently running:
+E (48240) task_wdt: CPU 0: IDLE0
+E (48240) task_wdt: CPU 1: loopTask
+E (48240) task_wdt: Aborting.
+E (48240) task_wdt: Print CPU 1 backtrace
+
+Backtrace: 0x42002293:0x3fcebd40 0x4200669c:0x3fcebd60 0x4037c089:0x3fcebd80
+
+ELF file SHA256: 365d1c660
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x42009f78
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x10cc
+load:0x403c8700,len:0xc2c
+load:0x403cb700,len:0x30b0
+entry 0x403c88b8
+t=18 ms start, reset reason 6, alarm 3, fan OFF
+t=3018 ms alarm 0, fan ON
+t=6018 ms alarm 1, fan OFF
+t=9018 ms alarm 2, fan OFF
+t=12018 ms alarm 3, fan OFF
+t=15018 ms alarm 0, fan ON
+t=18018 ms alarm 1, fan OFF
+t=21018 ms alarm 2, fan OFF
+t=24018 ms alarm 3, fan OFF
+t=27018 ms alarm 0, fan ON
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x10cc
+load:0x403c8700,len:0xc2c
+load:0x403cb700,len:0x30b0
+entry 0x403c88b8
+t=18 ms start, reset reason 1, alarm 0, fan ON
+t=3018 ms alarm 1, fan OFF
+t=6018 ms alarm 2, fan OFF
+t=9018 ms alarm 3, fan OFF
+
+
+## 5. Внесення несправності "таймер помер": рядок timerAlarm(...) закоментовано
+# Дзвінків немає - loop() не годує сторожа - сторож перезавантажує плату знову і знову (кожен старт - причина 6).
+# Сторож, якого годують лише на дзвінку, ловить і зависання loop(), і зупинку таймера.
+# У цьому записі ще стояв тимчасовий другий виклик startFanTimer() з розділу 3, тому є рядок ignored.
+
+E (6137) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (6137) task_wdt:  - loopTask (CPU 1)
+E (6137) task_wdt: Tasks currently running:
+E (6137) task_wdt: CPU 0: IDLE0
+E (6137) task_wdt: CPU 1: loopTask
+E (6137) task_wdt: Aborting.
+E (6137) task_wdt: Print CPU 1 backtrace
+
+Backtrace: 0x400559dd:0x3fcebc80 0x4037c34b:0x3fcebc90 0x4037b8e9:0x3fcebcb0 0x42004451:0x3fcebcf0 0x42002321:0x3fcebd20 0x42002270:0x3fcebd40 0x420065e8:0x3fcebd60 0x4037c089:0x3fcebd80
+
+ELF file SHA256: 8cdc09d15
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x42009ec4
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x10cc
+load:0x403c8700,len:0xc2c
+load:0x403cb700,len:0x30b0
+entry 0x403c88b8
+t=18 ms start, reset reason 6, alarm 0, fan ON
+t=19 ms timer already started, ignored.
+E (6142) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (6142) task_wdt:  - loopTask (CPU 1)
+E (6142) task_wdt: Tasks currently running:
+E (6142) task_wdt: CPU 0: IDLE0
+E (6142) task_wdt: CPU 1: loopTask
+E (6142) task_wdt: Aborting.
+E (6142) task_wdt: Print CPU 1 backtrace
+
+Backtrace: 0x400559dd:0x3fcebc80 0x4037dfcf:0x3fcebc90 0x4037bc25:0x3fcebcb0 0x42004426:0x3fcebcf0 0x42002321:0x3fcebd20 0x42002270:0x3fcebd40 0x420065e8:0x3fcebd60 0x4037c089:0x3fcebd80
+
+ELF file SHA256: 8cdc09d15
+
+Rebooting...
+[... так само повторюється при кожному старті ...]
+t=18 ms start, reset reason 6, alarm 0, fan ON
+t=19 ms timer already started, ignored.
