@@ -28,7 +28,7 @@ enum class ButtonState : uint8_t
 
 struct Config
 {
-    static constexpr RunMode kRunMode = RunMode::kPolling;
+    static constexpr RunMode kRunMode = RunMode::kAll;
     static constexpr gpio_num_t kButtonPin = GPIO_NUM_4;
     static constexpr int64_t kDebounceUs = 50 * 1000;       // вікно дебаунсу 50 мс
     static constexpr uint32_t kLoopPeriodMs = 10;           // крок циклу й опитування
