@@ -1,0 +1,158 @@
+# ДЗ 2.6 - усунення брязкоту контактів кнопки на ESP-IDF: результати виконання
+# Плата: ESP32-S3 DevKitC-1, ESP-IDF 5.5.5 (PlatformIO, pioarduino), монітор 115200 бод
+# Схема: 3V3 -> 10 кОм -> GPIO4 -> кнопка -> GND, натиснуто = 0
+# Завдання 5 (RC): 100 нФ між GPIO4 і GND, 100 Ом послідовно з кнопкою, підтяжка 10 кОм та сама
+# Кожен прогін: 10 звичайних натискань; після 3 с тиші програма друкує SUMMARY
+# Формат рядка: t=<millis> ms <метод> PRESS #<номер>, latency <мс від першого фронту натискання>
+# Дата: 2026-11-02
+
+
+## Прогін 1: без RC, kRunMode = kAll (усі методи паралельно на тих самих натисканнях)
+# raw edges 13 на 10 натискань (3 зайві фронти при відпусканні коротких натискань);
+# time-based 13 = 10 справжніх + 3 хибних (#6, #8, #10 через 80-100 мс після натискання, тобто на відпусканні);
+# state-based 10, polling 10.
+
+DZ 2.6: all methods, debounce 50 ms, loop 10 ms
+t=19544 ms time-based  PRESS #1, latency 2 ms
+t=19544 ms raw edges 1
+t=19594 ms state-based PRESS #1, latency 52 ms
+t=19594 ms polling     PRESS #1, latency 52 ms
+t=20634 ms time-based  PRESS #2, latency 0 ms
+t=20634 ms raw edges 2
+t=20684 ms state-based PRESS #2, latency 50 ms
+t=20684 ms polling     PRESS #2, latency 50 ms
+t=21814 ms time-based  PRESS #3, latency 5 ms
+t=21814 ms raw edges 3
+t=21864 ms state-based PRESS #3, latency 55 ms
+t=21864 ms polling     PRESS #3, latency 55 ms
+t=23044 ms time-based  PRESS #4, latency 2 ms
+t=23044 ms raw edges 4
+t=23094 ms state-based PRESS #4, latency 52 ms
+t=23094 ms polling     PRESS #4, latency 52 ms
+t=24184 ms time-based  PRESS #5, latency 9 ms
+t=24184 ms raw edges 5
+t=24234 ms state-based PRESS #5, latency 59 ms
+t=24234 ms polling     PRESS #5, latency 59 ms
+t=24264 ms time-based  PRESS #6, latency 0 ms
+t=24264 ms raw edges 6
+t=25384 ms time-based  PRESS #7, latency 1 ms
+t=25384 ms raw edges 7
+t=25434 ms state-based PRESS #6, latency 51 ms
+t=25434 ms polling     PRESS #6, latency 51 ms
+t=25484 ms time-based  PRESS #8, latency 9 ms
+t=25484 ms raw edges 8
+t=26494 ms time-based  PRESS #9, latency 1 ms
+t=26494 ms raw edges 9
+t=26544 ms state-based PRESS #7, latency 51 ms
+t=26544 ms polling     PRESS #7, latency 51 ms
+t=26574 ms time-based  PRESS #10, latency 5 ms
+t=26574 ms raw edges 10
+t=27564 ms time-based  PRESS #11, latency 1 ms
+t=27564 ms raw edges 11
+t=27614 ms state-based PRESS #8, latency 51 ms
+t=27614 ms polling     PRESS #8, latency 51 ms
+t=28734 ms time-based  PRESS #12, latency 2 ms
+t=28734 ms raw edges 12
+t=28784 ms state-based PRESS #9, latency 52 ms
+t=28784 ms polling     PRESS #9, latency 52 ms
+t=29924 ms time-based  PRESS #13, latency 1 ms
+t=29924 ms raw edges 13
+t=29974 ms state-based PRESS #10, latency 51 ms
+t=29974 ms polling     PRESS #10, latency 51 ms
+=== SUMMARY t=33024 ms (all methods): raw edges 13; time-based 13 (avg 3 ms); state-based 10 (avg 53 ms); polling 10 (avg 53 ms); dropped 0 ===
+
+
+## Прогін 2: без RC, kRunMode = kPolling (завдання 4: переривання не налаштовуються, лише опитування кожні 10 мс + машина станів)
+# 10/10; затримка рівно 50 мс, бо без переривань вона рахується від першого опитування з рівнем LOW,
+# а не від фізичного фронту: справжня затримка на 0-10 мс більша (крок опитування).
+
+t=595244 ms polling     PRESS #1, latency 50 ms
+t=596414 ms polling     PRESS #2, latency 50 ms
+t=597504 ms polling     PRESS #3, latency 50 ms
+t=598534 ms polling     PRESS #4, latency 50 ms
+t=599594 ms polling     PRESS #5, latency 50 ms
+t=600664 ms polling     PRESS #6, latency 50 ms
+t=601694 ms polling     PRESS #7, latency 50 ms
+t=602794 ms polling     PRESS #8, latency 50 ms
+t=603784 ms polling     PRESS #9, latency 50 ms
+t=604814 ms polling     PRESS #10, latency 50 ms
+=== SUMMARY t=607854 ms (task 4: polling FSM): polling 10 (avg 50 ms); ===
+
+
+## Прогін 3: з RC-фільтром, kRunMode = kAll (завдання 5)
+# raw edges 125 на 10 натискань: натискання дає 1 фронт, відпускання - 12-14 (повільний фронт RC + шум);
+# time-based 20 = 10 справжніх + 10 хибних (по одному на кожному відпусканні, через 130-180 мс після натискання);
+# state-based 10, polling 10.
+# Рядок SUMMARY у цьому прогоні не записано (лог скопійовано до 3 с тиші); підсумок за рядками:
+# raw edges 125; time-based 20 (avg 4 ms); state-based 10 (avg 54 ms); polling 10 (avg 54 ms).
+
+DZ 2.6: all methods, debounce 50 ms, loop 10 ms
+t=4964 ms time-based  PRESS #1, latency 2 ms
+t=4964 ms raw edges 1
+t=5014 ms state-based PRESS #1, latency 52 ms
+t=5014 ms polling     PRESS #1, latency 52 ms
+t=5144 ms time-based  PRESS #2, latency 5 ms
+t=5144 ms raw edges 13
+t=6864 ms time-based  PRESS #3, latency 0 ms
+t=6864 ms raw edges 14
+t=6914 ms state-based PRESS #2, latency 50 ms
+t=6914 ms polling     PRESS #2, latency 50 ms
+t=6994 ms time-based  PRESS #4, latency 9 ms
+t=6994 ms raw edges 26
+t=9324 ms time-based  PRESS #5, latency 2 ms
+t=9324 ms raw edges 27
+t=9374 ms state-based PRESS #3, latency 52 ms
+t=9374 ms polling     PRESS #3, latency 52 ms
+t=9504 ms time-based  PRESS #6, latency 2 ms
+t=9504 ms raw edges 40
+t=11544 ms time-based  PRESS #7, latency 9 ms
+t=11544 ms raw edges 41
+t=11594 ms state-based PRESS #4, latency 59 ms
+t=11594 ms polling     PRESS #4, latency 59 ms
+t=11694 ms time-based  PRESS #8, latency 3 ms
+t=11694 ms raw edges 54
+t=13634 ms time-based  PRESS #9, latency 1 ms
+t=13634 ms raw edges 55
+t=13684 ms state-based PRESS #5, latency 51 ms
+t=13684 ms polling     PRESS #5, latency 51 ms
+t=13804 ms time-based  PRESS #10, latency 6 ms
+t=13804 ms raw edges 67
+t=15654 ms time-based  PRESS #11, latency 8 ms
+t=15654 ms raw edges 68
+t=15704 ms state-based PRESS #6, latency 58 ms
+t=15704 ms polling     PRESS #6, latency 58 ms
+t=15824 ms time-based  PRESS #12, latency 4 ms
+t=15824 ms raw edges 80
+t=17544 ms time-based  PRESS #13, latency 5 ms
+t=17544 ms raw edges 81
+t=17594 ms state-based PRESS #7, latency 55 ms
+t=17594 ms polling     PRESS #7, latency 55 ms
+t=17654 ms time-based  PRESS #14, latency 2 ms
+t=17654 ms raw edges 94
+t=18844 ms time-based  PRESS #15, latency 4 ms
+t=18844 ms raw edges 95
+t=18894 ms state-based PRESS #8, latency 54 ms
+t=18894 ms polling     PRESS #8, latency 54 ms
+t=18944 ms time-based  PRESS #16, latency 2 ms
+t=18944 ms raw edges 108
+t=19734 ms time-based  PRESS #17, latency 5 ms
+t=19734 ms raw edges 109
+t=19784 ms state-based PRESS #9, latency 55 ms
+t=19784 ms polling     PRESS #9, latency 55 ms
+t=19844 ms time-based  PRESS #18, latency 8 ms
+t=19844 ms raw edges 123
+t=20524 ms time-based  PRESS #19, latency 8 ms
+t=20524 ms raw edges 124
+t=20574 ms state-based PRESS #10, latency 58 ms
+t=20574 ms polling     PRESS #10, latency 58 ms
+t=20624 ms time-based  PRESS #20, latency 7 ms
+t=20624 ms raw edges 125
+
+
+## Завдання 6: порівняльна таблиця (10 натискань у кожному прогоні)
+# Метод        | Хибних без RC | Хибних з RC | Затримка            | Складність | Коментар
+# Без debounce | 3 (13 фронтів)| 115 (125)   | 0                   | мінімальна | кожен фронт - подія; з RC гірше: повільний фронт перетинає поріг багато разів
+# Time-based   | 3             | 10          | 0-9 мс (крок циклу) | низька     | відпускання через >= 50 мс після натискання приймає як нове натискання
+# State-based  | 0             | 0           | 50-59 мс            | середня    | через 50 мс тиші перевіряє рівень: LOW = натискання, HIGH = брязкіт відпускання
+# Polling FSM  | 0             | 0           | 50-59 мс (50 + крок)| середня    | без переривань; затримка фіксована; найпередбачуваніший
+# Hardware RC  | сам по собі не лікує (125 фронтів проти 13 без RC); у парі зі state-based або polling - 0 хибних
