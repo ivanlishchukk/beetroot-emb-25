@@ -1,0 +1,47 @@
+# МП2 (урок 2.7) - світлофор за ПДР України: результати виконання
+# Плата: ESP32-S3 DevKitC-1, Arduino-ESP32 3.3.12, монітор 115200 бод
+# LED: зелений GPIO17, жовтий GPIO16, червоний GPIO15 (кожен через 220 Ом на GND); кнопка GPIO4 до GND, внутрішня підтяжка
+# Тривалості (Config): зелений 10 с, зелений миготливий 3 с, жовтий 3 с, червоний 10 с, червоний + жовтий 2 с; миготіння 1 Гц
+# Формат рядка: t=<millis> ms <стан або подія>
+# Дата: 2026-11-02
+
+
+## Прогін 1: два повні цикли без кнопки
+# Прогноз до прошивки: після RESET червоний, зміна через 10 с. Збігся.
+# Інтервали рівно 10000 / 2000 / 10000 / 3000 / 3000 мс - тривалості станів відмірює одноразовий апаратний таймер.
+
+t=19 ms traffic light start
+t=19 ms RED
+t=10019 ms RED + YELLOW
+t=12019 ms GREEN
+t=22019 ms GREEN BLINK
+t=25019 ms YELLOW
+t=28019 ms RED
+t=38019 ms RED + YELLOW
+t=40019 ms GREEN
+t=50019 ms GREEN BLINK
+t=53019 ms YELLOW
+t=56019 ms RED
+
+
+## Прогін 2: кнопка - особливий режим «жовтий миготливий» і повернення
+# 4 натискання - 4 перемикання, жодного подвійного (антибрязкіт за рівнем, 50 мс).
+# Вихід з особливого режиму - через ЖОВТИЙ (3 с) у ЧЕРВОНИЙ: регульований цикл починається з заборони руху.
+
+t=19 ms traffic light start
+t=19 ms RED
+t=10019 ms RED + YELLOW
+t=12019 ms GREEN
+t=22019 ms GREEN BLINK
+t=25019 ms YELLOW
+t=28019 ms RED
+t=31662 ms button: unregulated mode
+t=31662 ms YELLOW BLINK (unregulated)
+t=39629 ms button: regulated mode
+t=39629 ms YELLOW
+t=42629 ms RED
+t=45629 ms button: unregulated mode
+t=45629 ms YELLOW BLINK (unregulated)
+t=50544 ms button: regulated mode
+t=50544 ms YELLOW
+t=53544 ms RED
