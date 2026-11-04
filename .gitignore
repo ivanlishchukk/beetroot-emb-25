@@ -3,3 +3,7 @@
 *.bin
 *.elf
 .DS_Store
+
+# STM32CubeIDE build output
+stm32/*/Debug/
+stm32/*/Release/
