@@ -3,9 +3,15 @@
 #include <freertos/task.h>           // дає vTaskDelay
 #include <esp_adc/adc_oneshot.h>
 #include <esp_err.h>
+#include <driver/gpio.h>
 
-void app_main (void) {
+#define GREEN_LED_PIN GPIO_NUM_17
 
+void app_main(void) {
+
+  gpio_reset_pin(GREEN_LED_PIN);
+  gpio_set_direction(GREEN_LED_PIN, GPIO_MODE_OUTPUT);
+      
   adc_oneshot_unit_init_cfg_t adc_config = {
       .unit_id = ADC_UNIT_1,
   }; // заповнили анкету для АЦП
@@ -22,14 +28,18 @@ void app_main (void) {
 
   int new_chars[8] = {0}; // створили масив, задали усі 8 значень як нулі
   int n = sizeof(new_chars) / sizeof(new_chars[0]);
-  double avg_boundary = 3257;
+
+  double avg_boundary_light = 3250;
+  double avg_boundary_dark = 3200;
+  double avg_value = 0;
 
   int run_cycle = 0;
+  const char *result = "LOADING...";
 
   while (1) {
     int cage1;
     ESP_ERROR_CHECK(adc_oneshot_read(adc_handle_1, ADC_CHANNEL_4,
-                                     &cage1)); // вимірюємо і друкуємо число
+                                     &cage1)); // вимірюємо число
     new_chars[7] = new_chars[6];
     new_chars[6] = new_chars[5];
     new_chars[5] = new_chars[4];
@@ -49,17 +59,20 @@ void app_main (void) {
       new_chars_sum += new_chars[i];
     }
     
-    double avg_value = (double)new_chars_sum / n;
+    avg_value = (double)new_chars_sum / n;
 
     run_cycle = run_cycle + 1;
-    const char *result;
+
     if (run_cycle >= 8) {
-      if (avg_value < avg_boundary) {
-      result = "ТЕМНО";
-      } else {
+      if (avg_value < avg_boundary_dark) {
+        gpio_set_level(GREEN_LED_PIN, 1);
+        result = "ТЕМНО";
+      } else if (avg_value >= avg_boundary_light) {
+        gpio_set_level(GREEN_LED_PIN, 0);
         result = "СВІТЛО";
       }
     } else {
+      gpio_set_level(GREEN_LED_PIN, 0);
       result = "LOADING...";
     };
       
