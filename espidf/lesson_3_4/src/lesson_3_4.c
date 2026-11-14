@@ -5,9 +5,23 @@
 
 int counter = 0;
 int row_number = 0;
-int freq[3] = {440, 494, 0};
-int sound[3] = {2, 1, 0};
-int silence[3] = {1, 1, 0};
+int freq[37] = {
+    587, 880, 880, 698, 659, 659, 659, 659, 698, 587,
+    880, 880, 698, 659, 659,
+    659, 659, 698, 587, 880, 880, 698, 659, 659,
+    659, 659, 698, 587,
+    880, 880, 698, 659, 659, 659, 659, 698, 0};
+int sound[37] = {    6, 6, 6, 6, 6, 6, 6, 2, 3,
+    6, 6, 6, 6, 6, 6, 6, 2, 3,
+    6, 6, 6, 6, 6, 6, 6, 2, 3,
+    6, 6, 6, 6, 6, 6, 6, 2, 3,
+    0};
+int silence[37] = {    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    0};
+    
 int play_flag;
 
 void run_func(void *arg) {
@@ -21,7 +35,6 @@ void run_func(void *arg) {
   printf("ledc_get_duty = %lu\n", ledc_get_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));
 
   int row_melody_sum = sound[row_number] + silence[row_number];
-  printf("Row_melody_sum_on_start = %d\n", row_melody_sum);
 
   counter = counter + 1;
 
@@ -37,7 +50,6 @@ void run_func(void *arg) {
     row_number = row_number + 1;
     counter = 0;
     row_melody_sum = sound[row_number] + silence[row_number];
-    printf("Row_melody_sum_in_if = %d\n", row_melody_sum);
     if (row_melody_sum != 0) {
       printf("ON, %d, %d, %d\n", freq[row_number], sound[row_number],
              silence[row_number]);
