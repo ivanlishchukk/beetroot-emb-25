@@ -8,9 +8,15 @@ int row_number = 0;
 int freq[3] = {440, 494, 0};
 int sound[3] = {2, 1, 0};
 int silence[3] = {1, 1, 0};
+int play_flag;
 
 void run_func(void *arg) {
-  printf("CALLBACK\n");
+
+   if (play_flag == 1) {
+    return;
+   }
+   
+  printf("CALLBACK %lld\n", esp_timer_get_time());
   printf("ledc_get_freq = %lu\n", ledc_get_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_1));
   printf("ledc_get_duty = %lu\n", ledc_get_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));
 
@@ -43,7 +49,8 @@ void run_func(void *arg) {
     }
   } else if (row_melody_sum == 0) {
     printf("THE END!\n");
-    }
+    play_flag = 1;
+  }
   
 printf(" %d, %d, %d\n", freq[row_number], sound[row_number], silence[row_number]);
 printf("Counter: %d\n", counter);
@@ -75,5 +82,5 @@ void app_main(void) {
                                           .name = "Timer"};
   esp_timer_handle_t timer_handler;
   ESP_ERROR_CHECK(esp_timer_create(&timer_config, &timer_handler));
-  ESP_ERROR_CHECK(esp_timer_start_periodic(timer_handler, 1000000));
+  ESP_ERROR_CHECK(esp_timer_start_periodic(timer_handler, 81000));
 };
