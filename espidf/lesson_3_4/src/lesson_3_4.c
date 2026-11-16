@@ -2,7 +2,6 @@
 #include <esp_timer.h>
 #include <driver/ledc.h>
 #include <esp_err.h>
-#include <esp_err.h>
 #include <esp_adc/adc_oneshot.h>
 
 int counter = 0;
@@ -24,14 +23,14 @@ int silence[37] = {    1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1,
     0};
     
-int play_flag;
+int play_flag = 0;
 adc_oneshot_unit_handle_t adc_handle_number;
 
 void run_func(void *arg) {
   
-   if (play_flag == 1) {
+  if (play_flag == 1) {
     return;
-   }
+  }
 
   int row_melody_sum = sound[row_number] + silence[row_number];
 
@@ -63,7 +62,7 @@ void run_func(void *arg) {
     play_flag = 1;
   }
 
-};
+}
 
 void run_second_func(void *arg) {
 
@@ -78,7 +77,7 @@ void run_second_func(void *arg) {
       ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, led_duty));
   ESP_ERROR_CHECK(
       ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
-};
+}
 
 void app_main(void) {
   printf("lesson 3.4 start\n");
@@ -133,14 +132,14 @@ void app_main(void) {
                                              &monitor_channel_5));
 
   esp_timer_create_args_t timer_config = {.callback = run_func,
-                                          .name = "Timer"};
+                                          .name = "melody_tick"};
   esp_timer_handle_t timer_handler;
   ESP_ERROR_CHECK(esp_timer_create(&timer_config, &timer_handler));
   ESP_ERROR_CHECK(esp_timer_start_periodic(timer_handler, 81000));
 
   esp_timer_create_args_t second_timer_config = {.callback = run_second_func,
-                                          .name = "Timer"};
+                                          .name = "led_tick"};
   esp_timer_handle_t second_timer_handler;
   ESP_ERROR_CHECK(esp_timer_create(&second_timer_config, &second_timer_handler));
   ESP_ERROR_CHECK(esp_timer_start_periodic(second_timer_handler, 100000));
-};
+}
