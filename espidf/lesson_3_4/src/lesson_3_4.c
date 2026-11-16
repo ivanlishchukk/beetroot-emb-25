@@ -32,17 +32,13 @@ void run_func(void *arg) {
    if (play_flag == 1) {
     return;
    }
-   
-  printf("CALLBACK %lld\n", esp_timer_get_time());
-  printf("ledc_get_freq = %lu\n", ledc_get_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_1));
-  printf("ledc_get_duty = %lu\n", ledc_get_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));
 
   int row_melody_sum = sound[row_number] + silence[row_number];
 
   counter = counter + 1;
 
   if (counter == sound[row_number]) {
-    printf("OFF\n");
+    printf("%lld OFF\n", esp_timer_get_time());
     ESP_ERROR_CHECK(
         ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 0));
     ESP_ERROR_CHECK(
@@ -54,7 +50,7 @@ void run_func(void *arg) {
     counter = 0;
     row_melody_sum = sound[row_number] + silence[row_number];
     if (row_melody_sum != 0) {
-      printf("ON, %d, %d, %d\n", freq[row_number], sound[row_number],
+      printf("%lld ON, %d, %d, %d\n", esp_timer_get_time(), freq[row_number], sound[row_number],
              silence[row_number]);
       ESP_ERROR_CHECK(
         ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 8192));
@@ -63,12 +59,10 @@ void run_func(void *arg) {
         ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_1, freq[row_number]));
     }
   } else if (row_melody_sum == 0) {
-    printf("THE END!\n");
+    printf("%lld THE END!\n", esp_timer_get_time());
     play_flag = 1;
   }
-  
-printf(" %d, %d, %d\n", freq[row_number], sound[row_number], silence[row_number]);
-printf("Counter: %d\n", counter);
+
 };
 
 void run_second_func(void *arg) {
@@ -77,7 +71,7 @@ void run_second_func(void *arg) {
 
   int raw_value;
   ESP_ERROR_CHECK(adc_oneshot_read(adc_handle_number, ADC_CHANNEL_5, &raw_value));
-  printf("RAW = %d\n ", raw_value);
+  printf("RAW = %d\n", raw_value);
 
   int led_duty = raw_value*4;
   ESP_ERROR_CHECK(
@@ -107,7 +101,10 @@ void app_main(void) {
   };
   ESP_ERROR_CHECK(ledc_channel_config(&note_channel_config));
 
-    ledc_timer_config_t led_timer_config = {.clk_cfg = LEDC_AUTO_CLK,
+  printf("%lld ON, %d, %d, %d\n", esp_timer_get_time(), freq[0], sound[0],
+             silence[0]);
+
+  ledc_timer_config_t led_timer_config = {.clk_cfg = LEDC_AUTO_CLK,
                                       .speed_mode = LEDC_LOW_SPEED_MODE,
                                       .freq_hz = 1000,
                                       .duty_resolution = LEDC_TIMER_14_BIT,
