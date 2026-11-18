@@ -1,0 +1,7 @@
+cd ~/Documents/PlatformIO/Projects/Beetroot_EMB_25
+pbpaste > espidf/lesson_3_5/lesson_3_5_logs.txt
+wc -l espidf/lesson_3_5/lesson_3_5_logs.txt
+git add espidf/lesson_3_5/src/lesson_3_5.c espidf/lesson_3_5/lesson_3_5_logs.txt
+git status --short
+git commit -m "Module 3, lesson 3.5: potentiometer controls servo 1:1, clipping at 180 degrees, log"
+git push
